@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Browser Profiler v0.1</title>
+
+    <script type="text/javascript" src="/static/js/js.cookie.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/css/materialize.min.css">
+    <!-- <link rel="stylesheet" href="/static/css/global.css" /> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+
+</head>
+
+<body>
+    <script type="text/javascript">
+        var socket = io.connect('http://' + document.domain + ':' + location.port + "/detect");
+        var passed = false;
+        socket.on('connect', function() {
+            console.log("Connected.")
+        });
+
+        socket.on('test', function (data) {
+            var x = data["testcode"].split("/");
+            var test_type = x[0];
+            var status_code = x[1];
+            var test_id = data["test_id"];
+
+
+            console.log("loading " + test_type + "...");
+
+            if (test_type == "js") {
+                var element = document.getElementById("dynjs"); //remove previous test
+                if (element) {
+                    element.parentNode.removeChild(element);
+                }
+                passed = false;
+                var script = document.createElement("script");
+                script.type = "text/javascript";
+                script.src = "http://" + document.domain + ':' + location.port + "/detect/javascript?code=" + status_code + "&client_id="+Cookies.get("client_id") + "&test_id=" + test_id;
+                script.id = "dynjs";
+
+                document.getElementsByTagName("head")[0].appendChild(script);
+                //document.getElementsByName("head")[0]
+                window.setTimeout(function() {
+                    if (passed != true){
+                        socket.emit("result", {client_id :Cookies.get("client_id"), test_id: test_id, result: 0});
+                    } else {
+                        socket.emit("result", {client_id :Cookies.get("client_id"), test_id: test_id, result: 1});
+                    }
+                }, 1000)
+            }
+        });
+
+        socket.on("result", function(data){
+            console.log("got data")
+           show_result(data["renderer"])
+        });
+
+        function show_result(result){
+            $("#start_button").fadeOut();
+            $("#result").text(result);
+            $("#result").fadeIn();
+        }
+
+        function start_test(){
+            socket.emit("start_test", {client_id: Cookies.get("client_id")})
+        }
+
+        $(document).ready(function() {
+            $("#result").hide()
+        })
+    </script>
+
+    <nav class="light-blue lighten-1" role="navigation">
+        <div class="nav-wrapper container"><a id="logo-container" href="#" class="brand-logo">Logo</a>
+        <ul class="right hide-on-med-and-down">
+            <li><a href="#">Navbar Link</a></li>
+        </ul>
+
+        <ul id="nav-mobile" class="side-nav">
+            <li><a href="#">Navbar Link2</a></li>
+        </ul>
+
+        <a href="#" data-activates="nav-mobile" class="button-collapse"><i class="material-icons">menu</i></a>
+        </div>
+    </nav>
+
+    <div class="section no-pad-bot" id="index-banner">
+        <div class="container">
+            <div class="row center">
+                <a onclick="start_test();" id="start_button" class="btn-large waves-effect waves-light orange">Get Started</a>
+            </div>
+            <h1 id="result" class="header center orange-text">result</h1>
+            <br><br>
+
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.0/js/materialize.min.js"></script></body>
+
+</html>
